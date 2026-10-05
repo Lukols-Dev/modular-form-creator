@@ -1,11 +1,19 @@
 import {
   MODULES,
   NAME_PATTERN,
+  TEAM_MEMBER_OPTIONS,
   type Category,
   type ModuleKey,
   type Priority,
+  type TeamMember,
 } from './constants'
-import type { BasicInfo, ProjectDetails, Resource } from './types'
+import type {
+  BasicInfo,
+  BasicInfoValues,
+  ProjectDetails,
+  ProjectDetailsValues,
+  Resource,
+} from './types'
 
 export type ModuleState = 'complete' | 'notStarted' | 'locked'
 
@@ -72,4 +80,33 @@ export function canProvision(resource: Resource): boolean {
  */
 export function isSearchableName(term: string): boolean {
   return NAME_PATTERN.test(term)
+}
+
+/** Keeps selected team members in the order of the options, whatever order they were clicked in. */
+export function sortTeamMembers(selected: readonly string[]): TeamMember[] {
+  return TEAM_MEMBER_OPTIONS.filter((option) => selected.includes(option))
+}
+
+/** Form defaults for Basic Info. An empty priority stays undefined so the placeholder shows. */
+export function getBasicInfoDefaults(
+  basicInfo: BasicInfo | BasicInfoValues,
+): Partial<BasicInfoValues> {
+  return {
+    owner: basicInfo.owner,
+    email: basicInfo.email,
+    description: basicInfo.description,
+    priority: basicInfo.priority || undefined,
+  }
+}
+
+/** Form defaults for Project Details. An empty category stays undefined so the placeholder shows. */
+export function getProjectDetailsDefaults(
+  projectDetails: ProjectDetails | ProjectDetailsValues,
+): Partial<ProjectDetailsValues> {
+  return {
+    projectName: projectDetails.projectName,
+    budget: projectDetails.budget,
+    category: projectDetails.category || undefined,
+    options: sortTeamMembers(projectDetails.options),
+  }
 }

@@ -4,12 +4,8 @@ import styled from 'styled-components'
 const CONTENT_WIDTH = '1040px'
 
 export const Header = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 20;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(8px);
 `
 
 export const HeaderInner = styled.div`

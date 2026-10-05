@@ -1,7 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isRejectedRequest } from '../../../shared/api/client'
-import { createResource, deleteResource, provisionResource } from '../api/resourcesApi'
-import type { Resource } from '../domain/types'
+import {
+  createResource,
+  deleteResource,
+  provisionResource,
+  updateBasicInfo,
+  updateProjectDetails,
+} from '../api/resourcesApi'
+import type { BasicInfoPayload, ProjectDetailsPayload, Resource } from '../domain/types'
 import { resourceKeys } from './resourceKeys'
 
 /** Puts the server's copy of a saved resource into the cache and refreshes the lists. */
@@ -34,6 +40,29 @@ export function useCreateResource() {
   return useMutation({
     mutationFn: createResource,
     onSuccess: storeResource,
+  })
+}
+
+export function useUpdateBasicInfo(resourceId: number) {
+  const storeResource = useStoreResource()
+  const reloadAfterRejection = useReloadAfterRejection(resourceId)
+
+  return useMutation({
+    mutationFn: (payload: BasicInfoPayload) => updateBasicInfo(resourceId, payload),
+    onSuccess: storeResource,
+    onError: reloadAfterRejection,
+  })
+}
+
+export function useUpdateProjectDetails(resourceId: number) {
+  const storeResource = useStoreResource()
+  const reloadAfterRejection = useReloadAfterRejection(resourceId)
+
+  return useMutation({
+    mutationFn: (payload: ProjectDetailsPayload) =>
+      updateProjectDetails(resourceId, payload),
+    onSuccess: storeResource,
+    onError: reloadAfterRejection,
   })
 }
 

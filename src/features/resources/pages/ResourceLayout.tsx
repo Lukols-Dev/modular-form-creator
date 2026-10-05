@@ -84,7 +84,9 @@ function MissingResource({ title, description }: { title: string; description: s
       <StatePanel
         title={title}
         description={description}
-        action={<Button onClick={() => navigate(RESOURCES_PATH)}>Back to resources</Button>}
+        action={
+          <Button onClick={() => navigate(RESOURCES_PATH)}>Back to resources</Button>
+        }
       />
     </>
   )
