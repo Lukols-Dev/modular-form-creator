@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button, Card } from '../../../design-system'
 import { getErrorMessage } from '../../../shared/api/client'
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue'
+import { useReturnFocus } from '../../../shared/hooks/useReturnFocus'
 import { Alert } from '../../../shared/ui/Alert'
 import { Cluster, MutedText, PageHeading, Stack } from '../../../shared/ui/layout'
 import { StatePanel } from '../../../shared/ui/StatePanel'
@@ -30,6 +31,8 @@ export function ResourcesListPage() {
   } = useResourceListFilters()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [resourceToDelete, setResourceToDelete] = useState<Resource | null>(null)
+  const rememberCreateOpener = useReturnFocus(isCreateOpen)
+  const rememberDeleteOpener = useReturnFocus(resourceToDelete !== null)
 
   const search = filters.search.trim()
   const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS)
@@ -51,7 +54,14 @@ export function ResourcesListPage() {
     }
   }, [servedPage, isPlaceholderData, filters.page, setPage])
 
-  const openCreateDrawer = () => setIsCreateOpen(true)
+  const openCreateDrawer = () => {
+    rememberCreateOpener()
+    setIsCreateOpen(true)
+  }
+  const openDeleteDrawer = (resource: Resource) => {
+    rememberDeleteOpener()
+    setResourceToDelete(resource)
+  }
   const retryButton = (
     <Button
       type="button"
@@ -112,7 +122,7 @@ export function ResourcesListPage() {
         <ResourceTable
           resources={data.items}
           isStale={isPlaceholderData}
-          onDelete={setResourceToDelete}
+          onDelete={openDeleteDrawer}
         />
         <PaginationBar pagination={data.pagination} onPageChange={setPage} />
       </Card>
@@ -120,35 +130,39 @@ export function ResourcesListPage() {
   }
 
   return (
-    <Stack $gap="lg">
-      <title>Resources · Modular Form Creator</title>
-      <Cluster $justify="space-between" $gap="md">
-        <Stack $gap="xs">
-          <PageHeading>Resources</PageHeading>
-          <MutedText>
-            Create a resource, fill in Basic Info and Project Details, then complete it.
-          </MutedText>
-        </Stack>
-        <Button type="button" onClick={openCreateDrawer}>
-          New resource
-        </Button>
-      </Cluster>
+    <>
+      {/* The design-system Drawer has no focus trap, so the page behind an open drawer is made
+          inert: Tab stays in the drawer and screen readers skip the covered content. */}
+      <Stack $gap="lg" inert={isCreateOpen || resourceToDelete !== null}>
+        <title>Resources · Modular Form Creator</title>
+        <Cluster $justify="space-between" $gap="md">
+          <Stack $gap="xs">
+            <PageHeading>Resources</PageHeading>
+            <MutedText>
+              Create a resource, fill in Basic Info and Project Details, then complete it.
+            </MutedText>
+          </Stack>
+          <Button type="button" onClick={openCreateDrawer}>
+            New resource
+          </Button>
+        </Cluster>
 
-      <ResourceListToolbar
-        search={filters.search}
-        searchError={
-          search && !isSearchableName(search)
-            ? 'Resource names contain only letters, numbers, spaces and hyphens.'
-            : undefined
-        }
-        status={filters.status}
-        sortOrder={filters.sortOrder}
-        onSearchChange={setSearch}
-        onStatusChange={setStatus}
-        onSortOrderChange={setSortOrder}
-      />
+        <ResourceListToolbar
+          search={filters.search}
+          searchError={
+            search && !isSearchableName(search)
+              ? 'Resource names contain only letters, numbers, spaces and hyphens.'
+              : undefined
+          }
+          status={filters.status}
+          sortOrder={filters.sortOrder}
+          onSearchChange={setSearch}
+          onStatusChange={setStatus}
+          onSortOrderChange={setSortOrder}
+        />
 
-      {content}
+        {content}
+      </Stack>
 
       <CreateResourceDrawer
         isOpen={isCreateOpen}
@@ -158,6 +172,6 @@ export function ResourcesListPage() {
         resource={resourceToDelete}
         onClose={() => setResourceToDelete(null)}
       />
-    </Stack>
+    </>
   )
 }
