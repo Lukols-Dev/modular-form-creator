@@ -1,14 +1,20 @@
-import { IconButton } from '../../../design-system'
+import { Badge, IconButton } from '../../../design-system'
 import { formatDate } from '../../../shared/format'
 import { VisuallyHidden } from '../../../shared/ui/layout'
 import { MODULES } from '../domain/constants'
-import { countCompletedModules } from '../domain/rules'
+import {
+  countCompletedModules,
+  getChangedModules,
+  getUnsavedChanges,
+} from '../domain/rules'
 import type { Resource } from '../domain/types'
+import { usePendingChanges } from '../pending/usePendingChanges'
 import { resourcePath } from '../routes'
 import {
   NameCell,
   NameLink,
   SecondaryText,
+  StatusCell,
   Table,
   TableScroller,
 } from './ResourceTable.styles'
@@ -22,6 +28,12 @@ interface ResourceTableProps {
 }
 
 export function ResourceTable({ resources, isStale, onDelete }: ResourceTableProps) {
+  const { pendingByResource } = usePendingChanges()
+  const hasUnsavedChanges = (resource: Resource) =>
+    resource.status === 'completed' &&
+    getChangedModules(getUnsavedChanges(resource, pendingByResource[resource._id]))
+      .length > 0
+
   return (
     <TableScroller $dimmed={isStale} aria-busy={isStale}>
       <Table>
@@ -49,7 +61,12 @@ export function ResourceTable({ resources, isStale, onDelete }: ResourceTablePro
                 </NameCell>
               </td>
               <td>
-                <StatusBadge status={resource.status} />
+                <StatusCell>
+                  <StatusBadge status={resource.status} />
+                  {hasUnsavedChanges(resource) ? (
+                    <Badge variant="warning">Unsaved changes</Badge>
+                  ) : null}
+                </StatusCell>
               </td>
               <td>
                 {countCompletedModules(resource)} of {MODULES.length} complete

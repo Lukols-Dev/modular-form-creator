@@ -72,3 +72,9 @@ export const SecondaryText = styled.span`
   color: ${({ theme }) => theme.colors.inkMuted};
   white-space: nowrap;
 `
+
+export const StatusCell = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.spacing.xs};
+`

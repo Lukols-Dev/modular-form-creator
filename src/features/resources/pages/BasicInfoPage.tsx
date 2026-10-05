@@ -2,9 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/client'
 import { withFlash } from '../../../shared/hooks/useFlashMessage'
 import { BasicInfoForm } from '../components/BasicInfoForm'
+import { CompletedEditNotice } from '../components/CompletedEditNotice'
 import { ModuleFormCard } from '../components/ModuleFormCard'
 import { getBasicInfoDefaults } from '../domain/rules'
 import type { BasicInfoValues } from '../domain/types'
+import { useResourceChanges } from '../pending/useResourceChanges'
 import { useUpdateBasicInfo } from '../queries/mutations'
 import { resourcePath } from '../routes'
 import { useResourceContext } from './useResourceContext'
@@ -13,9 +15,17 @@ export function BasicInfoPage() {
   const { resource } = useResourceContext()
   const navigate = useNavigate()
   const updateBasicInfo = useUpdateBasicInfo(resource.resourceId)
+  const { changes, applyBasicInfo } = useResourceChanges(resource)
+  const isCompleted = resource.status === 'completed'
   const overviewPath = resourcePath(resource.resourceId)
 
-  const save = async (values: BasicInfoValues) => {
+  const submit = async (values: BasicInfoValues) => {
+    // Completed resource: keep the edit in memory; it is saved later with a single PUT.
+    if (isCompleted) {
+      applyBasicInfo(values)
+      navigate(overviewPath)
+      return
+    }
     try {
       // The backend wants all five fields, including the unchanged name.
       await updateBasicInfo.mutateAsync({ resourceName: resource.name, ...values })
@@ -28,18 +38,23 @@ export function BasicInfoPage() {
   return (
     <ModuleFormCard
       title="Basic Info"
-      description="Changes are saved to the server when you submit. All fields are required."
+      description={
+        isCompleted
+          ? 'Edit the module and apply the changes. All fields are required.'
+          : 'Changes are saved to the server when you submit. All fields are required.'
+      }
       backTo={overviewPath}
+      notice={isCompleted ? <CompletedEditNotice /> : null}
     >
       <BasicInfoForm
         resourceName={resource.name}
-        defaultValues={getBasicInfoDefaults(resource.basicInfo)}
-        submitLabel="Save Basic Info"
-        submittingLabel="Saving…"
+        defaultValues={getBasicInfoDefaults(changes.basicInfo ?? resource.basicInfo)}
+        submitLabel={isCompleted ? 'Apply changes' : 'Save Basic Info'}
+        submittingLabel={isCompleted ? 'Applying…' : 'Saving…'}
         serverError={
           updateBasicInfo.isError ? getErrorMessage(updateBasicInfo.error) : undefined
         }
-        onSubmit={save}
+        onSubmit={submit}
         onCancel={() => navigate(overviewPath)}
       />
     </ModuleFormCard>

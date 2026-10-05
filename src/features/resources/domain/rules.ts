@@ -10,8 +10,10 @@ import {
 import type {
   BasicInfo,
   BasicInfoValues,
+  PendingModules,
   ProjectDetails,
   ProjectDetailsValues,
+  ReplaceResourcePayload,
   Resource,
 } from './types'
 
@@ -108,5 +110,92 @@ export function getProjectDetailsDefaults(
     budget: projectDetails.budget,
     category: projectDetails.category || undefined,
     options: sortTeamMembers(projectDetails.options),
+  }
+}
+
+function sameMembers(first: readonly string[], second: readonly string[]): boolean {
+  return first.length === second.length && first.every((item) => second.includes(item))
+}
+
+export function isSameBasicInfo(values: BasicInfoValues, saved: BasicInfo): boolean {
+  return (
+    values.owner === saved.owner &&
+    values.email === saved.email &&
+    values.description === saved.description &&
+    values.priority === saved.priority
+  )
+}
+
+export function isSameProjectDetails(
+  values: ProjectDetailsValues,
+  saved: ProjectDetails,
+): boolean {
+  return (
+    values.projectName === saved.projectName &&
+    values.budget === saved.budget &&
+    values.category === saved.category &&
+    sameMembers(values.options, saved.options)
+  )
+}
+
+/** Staged modules that still differ from the saved resource. */
+export function getUnsavedChanges(
+  resource: Resource,
+  staged: PendingModules | undefined,
+): PendingModules {
+  const changes: PendingModules = {}
+  if (staged?.basicInfo && !isSameBasicInfo(staged.basicInfo, resource.basicInfo)) {
+    changes.basicInfo = staged.basicInfo
+  }
+  if (
+    staged?.projectDetails &&
+    !isSameProjectDetails(staged.projectDetails, resource.projectDetails)
+  ) {
+    changes.projectDetails = staged.projectDetails
+  }
+  return changes
+}
+
+export function getChangedModules(changes: PendingModules): ModuleKey[] {
+  return MODULES.filter((module) => changes[module] !== undefined)
+}
+
+function pickBasicInfoValues(basicInfo: BasicInfo): BasicInfoValues | null {
+  if (!isBasicInfoComplete(basicInfo)) {
+    return null
+  }
+  const { owner, email, description, priority } = basicInfo
+  return { owner, email, description, priority }
+}
+
+function pickProjectDetailsValues(
+  projectDetails: ProjectDetails,
+): ProjectDetailsValues | null {
+  if (!isProjectDetailsComplete(projectDetails)) {
+    return null
+  }
+  const { projectName, budget, category, options } = projectDetails
+  return { projectName, budget, category, options }
+}
+
+/**
+ * Builds the full PUT body. The backend answers 500 when any part is missing, so modules without
+ * changes are taken from the saved resource. Returns null if a module is incomplete, which
+ * cannot happen for a completed resource.
+ */
+export function buildReplacePayload(
+  resource: Resource,
+  changes: PendingModules,
+): ReplaceResourcePayload | null {
+  const basicInfo = changes.basicInfo ?? pickBasicInfoValues(resource.basicInfo)
+  const projectDetails =
+    changes.projectDetails ?? pickProjectDetailsValues(resource.projectDetails)
+  if (!basicInfo || !projectDetails) {
+    return null
+  }
+  return {
+    name: resource.name,
+    basicInfo: { resourceName: resource.name, ...basicInfo },
+    projectDetails,
   }
 }

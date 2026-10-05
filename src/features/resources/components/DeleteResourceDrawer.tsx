@@ -5,6 +5,7 @@ import { Alert } from '../../../shared/ui/Alert'
 import { FormActions } from '../../../shared/ui/form'
 import { MutedText, Stack } from '../../../shared/ui/layout'
 import type { Resource } from '../domain/types'
+import { useResourceChanges } from '../pending/useResourceChanges'
 import { useDeleteResource } from '../queries/mutations'
 
 interface DeleteResourceDrawerProps {
@@ -36,6 +37,7 @@ function DeleteConfirmation({
 }) {
   const deleteResource = useDeleteResource()
   const singleFlight = useSingleFlight()
+  const { hasChanges } = useResourceChanges(resource)
 
   const confirmDelete = () =>
     singleFlight(async () => {
@@ -56,6 +58,9 @@ function DeleteConfirmation({
         <strong>{resource.name}</strong> and both of its modules will be deleted
         permanently. This cannot be undone.
       </MutedText>
+      {hasChanges ? (
+        <Alert tone="warning">Its unsaved changes will be discarded as well.</Alert>
+      ) : null}
       {deleteResource.isError ? (
         <Alert tone="error">{getErrorMessage(deleteResource.error)}</Alert>
       ) : null}

@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card } from '../../../design-system'
+import { Badge, Button, Card } from '../../../design-system'
 import { MutedText, SectionHeading, SmallText } from '../../../shared/ui/layout'
 import { MODULE_LABELS, type ModuleKey } from '../domain/constants'
 import { getModuleState } from '../domain/rules'
@@ -17,9 +17,10 @@ const MODULE_DESCRIPTIONS: Record<ModuleKey, string> = {
 interface ModuleCardProps {
   resource: Resource
   module: ModuleKey
+  hasUnsavedChanges: boolean
 }
 
-export function ModuleCard({ resource, module }: ModuleCardProps) {
+export function ModuleCard({ resource, module, hasUnsavedChanges }: ModuleCardProps) {
   const navigate = useNavigate()
   const hintId = useId()
   const state = getModuleState(resource, module)
@@ -31,6 +32,7 @@ export function ModuleCard({ resource, module }: ModuleCardProps) {
         <SectionHeading>{label}</SectionHeading>
         <Badges>
           <ModuleStateBadge state={state} />
+          {hasUnsavedChanges ? <Badge variant="warning">Unsaved changes</Badge> : null}
         </Badges>
       </CardHeader>
       <MutedText>{MODULE_DESCRIPTIONS[module]}</MutedText>

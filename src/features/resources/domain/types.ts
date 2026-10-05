@@ -50,6 +50,12 @@ export interface ProjectDetailsValues {
   options: TeamMember[]
 }
 
+/** Module edits of a completed resource, kept in memory until the user saves them with PUT. */
+export interface PendingModules {
+  basicInfo?: BasicInfoValues
+  projectDetails?: ProjectDetailsValues
+}
+
 /** The backend requires all five fields, including the unchanged resource name. */
 export type BasicInfoPayload = BasicInfoValues & { resourceName: string }
 

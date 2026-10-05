@@ -4,10 +4,17 @@ import {
   createResource,
   deleteResource,
   provisionResource,
+  replaceResource,
   updateBasicInfo,
   updateProjectDetails,
 } from '../api/resourcesApi'
-import type { BasicInfoPayload, ProjectDetailsPayload, Resource } from '../domain/types'
+import type {
+  BasicInfoPayload,
+  ProjectDetailsPayload,
+  ReplaceResourcePayload,
+  Resource,
+} from '../domain/types'
+import { usePendingChanges } from '../pending/usePendingChanges'
 import { resourceKeys } from './resourceKeys'
 
 /** Puts the server's copy of a saved resource into the cache and refreshes the lists. */
@@ -77,13 +84,27 @@ export function useProvisionResource(resourceId: number) {
   })
 }
 
+/** Saves all modules of a completed resource in one request. */
+export function useReplaceResource(resourceId: number) {
+  const storeResource = useStoreResource()
+  const reloadAfterRejection = useReloadAfterRejection(resourceId)
+
+  return useMutation({
+    mutationFn: (payload: ReplaceResourcePayload) => replaceResource(resourceId, payload),
+    onSuccess: storeResource,
+    onError: reloadAfterRejection,
+  })
+}
+
 export function useDeleteResource() {
   const queryClient = useQueryClient()
+  const { discard } = usePendingChanges()
 
   return useMutation({
     mutationFn: (resource: Resource) => deleteResource(resource.resourceId),
     onSuccess: (_deleted, resource) => {
       queryClient.removeQueries({ queryKey: resourceKeys.detail(resource.resourceId) })
+      discard(resource._id)
     },
     // Wait for the refreshed list, so the deleted row never flashes back.
     onSettled: () => queryClient.invalidateQueries({ queryKey: resourceKeys.lists() }),

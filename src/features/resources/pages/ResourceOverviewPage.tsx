@@ -1,21 +1,45 @@
-import { Card } from '../../../design-system'
 import { getErrorMessage, isRejectedRequest } from '../../../shared/api/client'
 import { useFlashMessage } from '../../../shared/hooks/useFlashMessage'
 import { useSingleFlight } from '../../../shared/hooks/useSingleFlight'
 import { Alert } from '../../../shared/ui/Alert'
-import { MutedText, SectionHeading, Stack } from '../../../shared/ui/layout'
+import { Stack } from '../../../shared/ui/layout'
 import { CompletionPanel } from '../components/CompletionPanel'
 import { ModuleCard } from '../components/ModuleCard'
+import { PendingChangesPanel } from '../components/PendingChangesPanel'
 import { MODULES } from '../domain/constants'
-import { useProvisionResource } from '../queries/mutations'
+import { buildReplacePayload } from '../domain/rules'
+import { useResourceChanges } from '../pending/useResourceChanges'
+import { useProvisionResource, useReplaceResource } from '../queries/mutations'
 import { ModulesGrid } from './ResourceOverviewPage.styles'
 import { useResourceContext } from './useResourceContext'
 
 export function ResourceOverviewPage() {
   const { resource } = useResourceContext()
   const provision = useProvisionResource(resource.resourceId)
+  const replace = useReplaceResource(resource.resourceId)
+  const { changes, changedModules, hasChanges, discardChanges } =
+    useResourceChanges(resource)
   const singleFlight = useSingleFlight()
   const flashMessage = useFlashMessage()
+
+  const saveChanges = () =>
+    singleFlight(async () => {
+      const payload = buildReplacePayload(resource, changes)
+      if (!payload) {
+        return
+      }
+      try {
+        await replace.mutateAsync(payload)
+        discardChanges()
+      } catch {
+        // The error is shown below and the edits stay in the buffer for another try.
+      }
+    })
+
+  const discard = () => {
+    discardChanges()
+    replace.reset()
+  }
 
   return (
     <Stack $gap="lg">
@@ -33,6 +57,14 @@ export function ResourceOverviewPage() {
       {provision.isSuccess ? (
         <Alert tone="success">The resource is completed.</Alert>
       ) : null}
+      {replace.isError ? (
+        <Alert tone="error" title="Changes were not saved">
+          {getErrorMessage(replace.error)} Your edits are kept, so you can try again.
+        </Alert>
+      ) : null}
+      {replace.isSuccess && !hasChanges ? (
+        <Alert tone="success">Changes saved.</Alert>
+      ) : null}
 
       {resource.status === 'draft' ? (
         <CompletionPanel
@@ -41,15 +73,22 @@ export function ResourceOverviewPage() {
           onComplete={() => singleFlight(() => provision.mutateAsync())}
         />
       ) : (
-        <Card variant="elevated">
-          <SectionHeading>Completed</SectionHeading>
-          <MutedText>Both modules are complete and the resource is final.</MutedText>
-        </Card>
+        <PendingChangesPanel
+          changedModules={changedModules}
+          isSaving={replace.isPending}
+          onSave={saveChanges}
+          onDiscard={discard}
+        />
       )}
 
       <ModulesGrid>
         {MODULES.map((module) => (
-          <ModuleCard key={module} resource={resource} module={module} />
+          <ModuleCard
+            key={module}
+            resource={resource}
+            module={module}
+            hasUnsavedChanges={changedModules.includes(module)}
+          />
         ))}
       </ModulesGrid>
     </Stack>
