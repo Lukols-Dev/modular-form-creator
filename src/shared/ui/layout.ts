@@ -38,6 +38,12 @@ export const MutedText = styled.p`
   line-height: 1.5;
 `
 
+export const SmallText = styled.p`
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: ${({ theme }) => theme.colors.inkMuted};
+`
+
 export const TextLink = styled(Link)`
   color: ${({ theme }) => theme.colors.primaryStrong};
   font-weight: 600;

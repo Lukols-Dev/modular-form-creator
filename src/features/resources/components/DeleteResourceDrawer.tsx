@@ -1,5 +1,6 @@
 import { Button, Drawer } from '../../../design-system'
 import { getErrorMessage, isApiError } from '../../../shared/api/client'
+import { useSingleFlight } from '../../../shared/hooks/useSingleFlight'
 import { Alert } from '../../../shared/ui/Alert'
 import { FormActions } from '../../../shared/ui/form'
 import { MutedText, Stack } from '../../../shared/ui/layout'
@@ -34,18 +35,20 @@ function DeleteConfirmation({
   onClose: () => void
 }) {
   const deleteResource = useDeleteResource()
+  const singleFlight = useSingleFlight()
 
-  const confirmDelete = () => {
-    deleteResource.mutate(resource, {
-      onSuccess: onClose,
-      // Someone else already deleted it, which is the outcome the user asked for.
-      onError: (error) => {
+  const confirmDelete = () =>
+    singleFlight(async () => {
+      try {
+        await deleteResource.mutateAsync(resource)
+        onClose()
+      } catch (error) {
+        // Someone else already deleted it, which is the outcome the user asked for.
         if (isApiError(error, 404)) {
           onClose()
         }
-      },
+      }
     })
-  }
 
   return (
     <Stack $gap="lg">

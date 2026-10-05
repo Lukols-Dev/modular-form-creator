@@ -77,6 +77,11 @@ export function isApiError(error: unknown, status?: number): error is ApiError {
   return error instanceof ApiError && (status === undefined || error.status === status)
 }
 
+/** The server answered with a 4xx: the request itself was rejected, so retrying will not help. */
+export function isRejectedRequest(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status >= 400 && error.status < 500
+}
+
 export function getErrorMessage(error: unknown): string {
   return error instanceof ApiError
     ? error.message
