@@ -1,21 +1,20 @@
 import type { ReactNode } from 'react'
 import { Card } from '../../../design-system'
+import { Alert } from '../../../shared/ui/Alert'
 import { BackLink, MutedText, SectionHeading, Stack } from '../../../shared/ui/layout'
 
 interface ModuleFormCardProps {
   title: string
-  description: ReactNode
   backTo: string
-  /** Optional message shown above the form, e.g. how completed resources are saved. */
-  notice?: ReactNode
+  /** A completed resource keeps applied changes in memory, so the card explains that. */
+  isCompleted: boolean
   children: ReactNode
 }
 
 export function ModuleFormCard({
   title,
-  description,
   backTo,
-  notice,
+  isCompleted,
   children,
 }: ModuleFormCardProps) {
   return (
@@ -24,9 +23,19 @@ export function ModuleFormCard({
       <Card variant="elevated">
         <Stack $gap="xs">
           <SectionHeading>{title}</SectionHeading>
-          <MutedText>{description}</MutedText>
+          <MutedText>
+            {isCompleted
+              ? 'Edit the module and apply the changes.'
+              : 'Changes are saved to the server when you submit.'}{' '}
+            All fields are required.
+          </MutedText>
         </Stack>
-        {notice}
+        {isCompleted ? (
+          <Alert tone="info" title="This resource is completed">
+            Applied changes stay in this browser tab. Nothing is sent to the server until
+            you choose “Save changes” on the overview.
+          </Alert>
+        ) : null}
         {children}
       </Card>
     </Stack>

@@ -51,7 +51,7 @@ export interface ProjectDetailsValues {
 }
 
 /** Module edits of a completed resource, kept in memory until the user saves them with PUT. */
-export interface PendingModules {
+export interface PendingChanges {
   basicInfo?: BasicInfoValues
   projectDetails?: ProjectDetailsValues
 }

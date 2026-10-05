@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import { getErrorMessage } from '../../../shared/api/client'
 import { withFlash } from '../../../shared/hooks/useFlashMessage'
 import { BasicInfoForm } from '../components/BasicInfoForm'
-import { CompletedEditNotice } from '../components/CompletedEditNotice'
 import { ModuleFormCard } from '../components/ModuleFormCard'
 import { getBasicInfoDefaults } from '../domain/rules'
 import type { BasicInfoValues } from '../domain/types'
@@ -28,24 +27,19 @@ export function BasicInfoPage() {
     }
     try {
       // The backend wants all five fields, including the unchanged name.
-      await updateBasicInfo.mutateAsync({ resourceName: resource.name, ...values })
-      navigate(overviewPath, withFlash('Basic Info saved.'))
+      await updateBasicInfo.mutateAsync(
+        { resourceName: resource.name, ...values },
+        // Per-call callbacks are skipped once the page unmounts, so a user who has already
+        // left is not pulled back when the request finishes.
+        { onSuccess: () => navigate(overviewPath, withFlash('Basic Info saved.')) },
+      )
     } catch {
       // The form shows the error from the mutation state.
     }
   }
 
   return (
-    <ModuleFormCard
-      title="Basic Info"
-      description={
-        isCompleted
-          ? 'Edit the module and apply the changes. All fields are required.'
-          : 'Changes are saved to the server when you submit. All fields are required.'
-      }
-      backTo={overviewPath}
-      notice={isCompleted ? <CompletedEditNotice /> : null}
-    >
+    <ModuleFormCard title="Basic Info" backTo={overviewPath} isCompleted={isCompleted}>
       <BasicInfoForm
         resourceName={resource.name}
         defaultValues={getBasicInfoDefaults(changes.basicInfo ?? resource.basicInfo)}

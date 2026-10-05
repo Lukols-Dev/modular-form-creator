@@ -81,15 +81,19 @@ export function ProjectDetailsForm({
         control={control}
         name="options"
         render={({ field, fieldState }) => (
-          <CheckboxGroup
-            label="Team members needed"
-            tooltip="Select all roles required for this project."
-            helper="Pick all needed roles."
-            options={TEAM_MEMBER_CHOICES}
-            value={field.value ?? []}
-            error={fieldState.error?.message}
-            onChange={(selected) => field.onChange(sortTeamMembers(selected))}
-          />
+          // The design-system CheckboxGroup takes no ref, so React Hook Form gets the first
+          // checkbox and can move focus there when the field is invalid.
+          <div ref={(element) => field.ref(element?.querySelector('input'))}>
+            <CheckboxGroup
+              label="Team members needed"
+              tooltip="Select all roles required for this project."
+              helper="Pick all needed roles."
+              options={TEAM_MEMBER_CHOICES}
+              value={field.value ?? []}
+              error={fieldState.error?.message}
+              onChange={(selected) => field.onChange(sortTeamMembers(selected))}
+            />
+          </div>
         )}
       />
       {serverError ? (

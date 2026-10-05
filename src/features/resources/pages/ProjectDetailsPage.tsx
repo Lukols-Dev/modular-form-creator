@@ -3,7 +3,6 @@ import { Button } from '../../../design-system'
 import { getErrorMessage } from '../../../shared/api/client'
 import { withFlash } from '../../../shared/hooks/useFlashMessage'
 import { StatePanel } from '../../../shared/ui/StatePanel'
-import { CompletedEditNotice } from '../components/CompletedEditNotice'
 import { ModuleFormCard } from '../components/ModuleFormCard'
 import { ProjectDetailsForm } from '../components/ProjectDetailsForm'
 import { getProjectDetailsDefaults, isProjectDetailsLocked } from '../domain/rules'
@@ -51,8 +50,10 @@ export function ProjectDetailsPage() {
       return
     }
     try {
-      await updateProjectDetails.mutateAsync(values)
-      navigate(overviewPath, withFlash('Project Details saved.'))
+      await updateProjectDetails.mutateAsync(values, {
+        // Skipped once the page unmounts, so a user who has already left is not pulled back.
+        onSuccess: () => navigate(overviewPath, withFlash('Project Details saved.')),
+      })
     } catch {
       // The form shows the error from the mutation state.
     }
@@ -61,13 +62,8 @@ export function ProjectDetailsPage() {
   return (
     <ModuleFormCard
       title="Project Details"
-      description={
-        isCompleted
-          ? 'Edit the module and apply the changes. All fields are required.'
-          : 'Changes are saved to the server when you submit. All fields are required.'
-      }
       backTo={overviewPath}
-      notice={isCompleted ? <CompletedEditNotice /> : null}
+      isCompleted={isCompleted}
     >
       <ProjectDetailsForm
         defaultValues={getProjectDetailsDefaults(

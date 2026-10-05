@@ -8,15 +8,15 @@ import type { BasicInfoValues, ProjectDetailsValues, Resource } from '../domain/
 import { usePendingChanges } from './usePendingChanges'
 
 /**
- * Unsaved edits of one resource. Only completed resources use the buffer: a draft saves each
- * module right away, so for drafts this always reports no changes.
+ * Pending edits of one resource. Only completed resources keep edits in memory: a draft saves
+ * each module right away, so for drafts this always reports no changes.
  */
 export function useResourceChanges(resource: Resource) {
-  const { pendingByResource, stage, unstage, discard } = usePendingChanges()
-  const resourceKey = resource._id
+  const { pendingByResource, apply, revert, prune, discard } = usePendingChanges()
+  const mongoId = resource._id
   const changes = getUnsavedChanges(
     resource,
-    resource.status === 'completed' ? pendingByResource[resourceKey] : undefined,
+    resource.status === 'completed' ? pendingByResource[mongoId] : undefined,
   )
   const changedModules = getChangedModules(changes)
 
@@ -24,15 +24,17 @@ export function useResourceChanges(resource: Resource) {
     changes,
     changedModules,
     hasChanges: changedModules.length > 0,
-    // Applying values equal to the saved ones removes the module instead of staging a no-op.
+    // Applying values equal to the saved ones reverts the module instead of keeping a no-op.
     applyBasicInfo: (values: BasicInfoValues) =>
       isSameBasicInfo(values, resource.basicInfo)
-        ? unstage(resourceKey, 'basicInfo')
-        : stage(resourceKey, { basicInfo: values }),
+        ? revert(mongoId, 'basicInfo')
+        : apply(mongoId, { basicInfo: values }),
     applyProjectDetails: (values: ProjectDetailsValues) =>
       isSameProjectDetails(values, resource.projectDetails)
-        ? unstage(resourceKey, 'projectDetails')
-        : stage(resourceKey, { projectDetails: values }),
-    discardChanges: () => discard(resourceKey),
+        ? revert(mongoId, 'projectDetails')
+        : apply(mongoId, { projectDetails: values }),
+    discardChanges: () => discard(mongoId),
+    /** Call with the server's answer to a successful PUT. */
+    pruneSaved: prune,
   }
 }

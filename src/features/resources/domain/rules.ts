@@ -10,7 +10,7 @@ import {
 import type {
   BasicInfo,
   BasicInfoValues,
-  PendingModules,
+  PendingChanges,
   ProjectDetails,
   ProjectDetailsValues,
   ReplaceResourcePayload,
@@ -138,25 +138,25 @@ export function isSameProjectDetails(
   )
 }
 
-/** Staged modules that still differ from the saved resource. */
+/** Pending modules that still differ from the saved resource. */
 export function getUnsavedChanges(
   resource: Resource,
-  staged: PendingModules | undefined,
-): PendingModules {
-  const changes: PendingModules = {}
-  if (staged?.basicInfo && !isSameBasicInfo(staged.basicInfo, resource.basicInfo)) {
-    changes.basicInfo = staged.basicInfo
+  pending: PendingChanges | undefined,
+): PendingChanges {
+  const changes: PendingChanges = {}
+  if (pending?.basicInfo && !isSameBasicInfo(pending.basicInfo, resource.basicInfo)) {
+    changes.basicInfo = pending.basicInfo
   }
   if (
-    staged?.projectDetails &&
-    !isSameProjectDetails(staged.projectDetails, resource.projectDetails)
+    pending?.projectDetails &&
+    !isSameProjectDetails(pending.projectDetails, resource.projectDetails)
   ) {
-    changes.projectDetails = staged.projectDetails
+    changes.projectDetails = pending.projectDetails
   }
   return changes
 }
 
-export function getChangedModules(changes: PendingModules): ModuleKey[] {
+export function getChangedModules(changes: PendingChanges): ModuleKey[] {
   return MODULES.filter((module) => changes[module] !== undefined)
 }
 
@@ -185,7 +185,7 @@ function pickProjectDetailsValues(
  */
 export function buildReplacePayload(
   resource: Resource,
-  changes: PendingModules,
+  changes: PendingChanges,
 ): ReplaceResourcePayload | null {
   const basicInfo = changes.basicInfo ?? pickBasicInfoValues(resource.basicInfo)
   const projectDetails =

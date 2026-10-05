@@ -17,7 +17,7 @@ export function ResourceOverviewPage() {
   const { resource } = useResourceContext()
   const provision = useProvisionResource(resource.resourceId)
   const replace = useReplaceResource(resource.resourceId)
-  const { changes, changedModules, hasChanges, discardChanges } =
+  const { changes, changedModules, hasChanges, discardChanges, pruneSaved } =
     useResourceChanges(resource)
   const singleFlight = useSingleFlight()
   const flashMessage = useFlashMessage()
@@ -29,10 +29,11 @@ export function ResourceOverviewPage() {
         return
       }
       try {
-        await replace.mutateAsync(payload)
-        discardChanges()
+        const saved = await replace.mutateAsync(payload)
+        // Runs even if the user has left the overview meanwhile, so saved edits never linger.
+        pruneSaved(saved)
       } catch {
-        // The error is shown below and the edits stay in the buffer for another try.
+        // The error is shown below and the edits stay pending for another try.
       }
     })
 
@@ -43,7 +44,10 @@ export function ResourceOverviewPage() {
 
   return (
     <Stack $gap="lg">
-      {flashMessage ? <Alert tone="success">{flashMessage}</Alert> : null}
+      {/* The confirmation from the previous page is dropped once the user acts here. */}
+      {flashMessage && provision.isIdle && replace.isIdle ? (
+        <Alert tone="success">{flashMessage}</Alert>
+      ) : null}
       {/* Shown outside the status panels: a failed provisioning reloads the resource, which may
           already be completed in another tab, and the message has to stay visible. */}
       {provision.isError ? (

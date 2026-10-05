@@ -20,15 +20,8 @@ import { useResourceListFilters } from './useResourceListFilters'
 const SEARCH_DEBOUNCE_MS = 300
 
 export function ResourcesListPage() {
-  const {
-    filters,
-    hasActiveFilters,
-    setPage,
-    setStatus,
-    setSortOrder,
-    setSearch,
-    clearFilters,
-  } = useResourceListFilters()
+  const { filters, setPage, setStatus, setSortOrder, setSearch, clearFilters } =
+    useResourceListFilters()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [resourceToDelete, setResourceToDelete] = useState<Resource | null>(null)
   const rememberCreateOpener = useReturnFocus(isCreateOpen)
@@ -37,13 +30,17 @@ export function ResourcesListPage() {
   const search = filters.search.trim()
   const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS)
   const { data, error, isError, isFetching, isPlaceholderData, refetch } =
-    useResourcesQuery({
-      page: filters.page,
-      pageSize: PAGE_SIZE,
-      sortOrder: filters.sortOrder,
-      status: filters.status,
-      name: debouncedSearch || undefined,
-    })
+    useResourcesQuery(
+      {
+        page: filters.page,
+        pageSize: PAGE_SIZE,
+        sortOrder: filters.sortOrder,
+        status: filters.status,
+        name: debouncedSearch || undefined,
+      },
+      // Wait while the user is typing; the current rows stay on screen, dimmed.
+      { enabled: search === debouncedSearch },
+    )
 
   // The backend clamps a page past the end (for example after deleting the only item on the
   // last page) and reports the page it returned. Follow it, so the URL and controls agree.
@@ -86,27 +83,28 @@ export function ResourcesListPage() {
       <StatePanel busy title="Loading resources…" />
     )
   } else if (data.items.length === 0) {
-    content = hasActiveFilters ? (
-      <StatePanel
-        title="No resources match your filters"
-        description="Try a different name or status."
-        action={
-          <Button type="button" variant="secondary" onClick={clearFilters}>
-            Clear filters
-          </Button>
-        }
-      />
-    ) : (
-      <StatePanel
-        title="No resources yet"
-        description="Create your first resource to get started."
-        action={
-          <Button type="button" onClick={openCreateDrawer}>
-            New resource
-          </Button>
-        }
-      />
-    )
+    content =
+      data.params.status || data.params.name ? (
+        <StatePanel
+          title="No resources match your filters"
+          description="Try a different name or status."
+          action={
+            <Button type="button" variant="secondary" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          }
+        />
+      ) : (
+        <StatePanel
+          title="No resources yet"
+          description="Create your first resource to get started."
+          action={
+            <Button type="button" onClick={openCreateDrawer}>
+              New resource
+            </Button>
+          }
+        />
+      )
   } else {
     content = (
       <Card variant="elevated">

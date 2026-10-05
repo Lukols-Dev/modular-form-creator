@@ -10,6 +10,9 @@ import { createResourceSchema, type CreateResourceValues } from '../domain/schem
 import { useCreateResource } from '../queries/mutations'
 import { resourcePath } from '../routes'
 
+/** The backend's wording names the field; the form shows a friendlier sentence instead. */
+const DUPLICATE_NAME_MESSAGE = 'resourceName must be unique'
+
 interface CreateResourceDrawerProps {
   isOpen: boolean
   onClose: () => void
@@ -42,12 +45,20 @@ function CreateResourceForm({ onCancel }: { onCancel: () => void }) {
 
   const submit = handleSubmit(async ({ resourceName }) => {
     try {
-      const resource = await createResource.mutateAsync(resourceName)
-      navigate(resourcePath(resource.resourceId))
+      await createResource.mutateAsync(resourceName, {
+        // Skipped if the drawer was closed meanwhile; the new resource then shows up in the list.
+        onSuccess: (resource) => navigate(resourcePath(resource.resourceId)),
+      })
     } catch (error) {
-      // Every 400 from this endpoint is about the name (for example a duplicate).
+      // Every 400 from this endpoint is about the name, for example a duplicate.
       if (isApiError(error, 400)) {
-        setError('resourceName', { type: 'server', message: error.message })
+        setError('resourceName', {
+          type: 'server',
+          message:
+            error.message === DUPLICATE_NAME_MESSAGE
+              ? 'A resource with this name already exists. Names are not case-sensitive.'
+              : error.message,
+        })
       } else {
         setError('root.server', { type: 'server', message: getErrorMessage(error) })
       }

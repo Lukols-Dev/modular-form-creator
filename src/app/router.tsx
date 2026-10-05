@@ -5,7 +5,8 @@ import { AppLayout } from './AppLayout'
 import { NotFoundPage } from './NotFoundPage'
 import { RouteErrorPage } from './RouteErrorPage'
 
-// Pages load on first visit, so the form libraries stay out of the initial bundle.
+// Pages load per route, which keeps the main bundle small: zod and React Hook Form load only
+// with the pages that use them.
 export const router = createBrowserRouter([
   {
     path: '/',

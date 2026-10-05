@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { isRejectedRequest } from '../../../shared/api/client'
+import { isApiError, isRejectedRequest } from '../../../shared/api/client'
 import {
   createResource,
   deleteResource,
@@ -100,11 +100,19 @@ export function useDeleteResource() {
   const queryClient = useQueryClient()
   const { discard } = usePendingChanges()
 
+  const forget = (resource: Resource) => {
+    queryClient.removeQueries({ queryKey: resourceKeys.detail(resource.resourceId) })
+    discard(resource._id)
+  }
+
   return useMutation({
     mutationFn: (resource: Resource) => deleteResource(resource.resourceId),
-    onSuccess: (_deleted, resource) => {
-      queryClient.removeQueries({ queryKey: resourceKeys.detail(resource.resourceId) })
-      discard(resource._id)
+    onSuccess: (_deleted, resource) => forget(resource),
+    // A 404 means it was already deleted elsewhere, which is the outcome the user asked for.
+    onError: (error, resource) => {
+      if (isApiError(error, 404)) {
+        forget(resource)
+      }
     },
     // Wait for the refreshed list, so the deleted row never flashes back.
     onSettled: () => queryClient.invalidateQueries({ queryKey: resourceKeys.lists() }),

@@ -26,5 +26,10 @@ export function formatList(items: string[]): string {
 
 /** Groups digits in threes without converting to a number, so long values keep every digit. */
 export function formatDigits(digits: string): string {
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  const firstGroupLength = digits.length % 3 || 3
+  const groups = [digits.slice(0, firstGroupLength)]
+  for (let start = firstGroupLength; start < digits.length; start += 3) {
+    groups.push(digits.slice(start, start + 3))
+  }
+  return groups.join(',')
 }

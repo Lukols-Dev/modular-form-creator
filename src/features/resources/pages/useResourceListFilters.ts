@@ -59,7 +59,6 @@ export function useResourceListFilters() {
 
   return {
     filters,
-    hasActiveFilters: Boolean(filters.status || filters.search.trim()),
     setPage: (page: number, options?: UpdateOptions) =>
       update({ page: page > 1 ? String(page) : undefined }, options),
     setStatus: (status: ResourceStatus | undefined) =>
