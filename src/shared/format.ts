@@ -23,3 +23,8 @@ const listFormatter = new Intl.ListFormat('en', { style: 'long', type: 'conjunct
 export function formatList(items: string[]): string {
   return listFormatter.format(items)
 }
+
+/** Groups digits in threes without converting to a number, so long values keep every digit. */
+export function formatDigits(digits: string): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
