@@ -79,10 +79,13 @@ function MissingResource({ title, description }: { title: string; description: s
   const navigate = useNavigate()
 
   return (
-    <StatePanel
-      title={title}
-      description={description}
-      action={<Button onClick={() => navigate(RESOURCES_PATH)}>Back to resources</Button>}
-    />
+    <>
+      <title>{`${title} · Modular Form Creator`}</title>
+      <StatePanel
+        title={title}
+        description={description}
+        action={<Button onClick={() => navigate(RESOURCES_PATH)}>Back to resources</Button>}
+      />
+    </>
   )
 }
