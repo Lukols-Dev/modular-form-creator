@@ -32,13 +32,11 @@ Quality checks: `npm run lint` and `npm run build` both pass with no errors or w
 
 ## Tech decisions
 
-- **TanStack Query for server state.** It provides caching, deduplicated requests, retries and cache updates after mutations, without hand-written `useEffect` fetching. Every successful write puts the server's response into the cache, so pages update without an extra request, and lists are invalidated. 4xx answers are not retried, so "not found" appears immediately.
-- **React Hook Form with zod.** Each form has one schema that mirrors the backend rules one to one: trimming, patterns, lengths and allowed values. Users see the error next to the field instead of a 400. `register` works directly with the design-system `Input` and `Select`. `CheckboxGroup` is connected through `Controller`.
-- **Pending changes for completed resources.** This is the in-memory buffer the task asks for: a React context with a reducer, placed above the router. Edits survive moving between pages and back to the list, and disappear on refresh. Nothing is written to `localStorage`, `sessionStorage` or the URL.
-- **Data router with a layout route.** `/resources/:resourceId` loads the resource once for its four child routes and handles invalid ids, 404 and network errors in one place.
-- **Route-level code splitting.** Pages load per route, so zod and React Hook Form arrive only with the pages that use them. This also keeps the build under Vite's 500 kB chunk warning.
+- **TanStack Query for server state.** It gives caching, deduplicated requests and retries without hand-written `useEffect` fetching, which this repository's lint rules reject. A successful create or update puts the server's response into the cache, so pages update without an extra request. A delete removes the resource from the cache. Lists are refreshed after every change. 4xx answers are not retried, so "not found" appears immediately. *Considered:* React Router loaders and actions. They need no extra library, but cache updates, invalidation and form state would be hand-written.
+- **React Hook Form with zod.** Each form has one schema that mirrors the backend rules one to one: trimming, patterns, allowed values, and lengths counted the way the backend counts them. Users see the error next to the field instead of a 400. `register` works directly with the design-system `Input` and `Select`, and `CheckboxGroup` is connected through `Controller`. *Considered:* hand-written controlled forms, which would repeat validation and error state in every form.
+- **Pending changes of completed resources in a context above the router.** This is the in-memory buffer the task asks for: a React context with a reducer. Edits survive moving between pages and back to the list, and disappear on refresh. Nothing is written to `localStorage`, `sessionStorage` or the URL. The rule "a draft saves at once, a completed resource waits for Save changes" lives in one hook, `useModuleSubmit`. *Considered:* the TanStack Query cache, where a background refetch could overwrite unsaved edits and server and client state would mix. Also the resource layout, where edits would be lost when the user goes back to the list.
+- **Data router with a layout route and lazy pages.** `/resources/:resourceId` loads the resource once for its four child routes and handles invalid ids, 404 and network errors in one place. Pages load per route, so zod and React Hook Form arrive only with the pages that use them. This also keeps the build under Vite's 500 kB chunk warning.
 - **Business rules as pure functions** in `src/features/resources/domain/rules.ts`. They cover module completeness (the same rule as the backend), when provisioning is allowed, change detection and building the PUT body. Components call them and do not repeat the logic.
-- **Only the provided design system.** The UI uses its components and theme through styled-components, with no other UI library.
 
 ## Business rules: who sends what
 
@@ -68,17 +66,21 @@ The task leaves these decisions open. This is how I resolved them:
 - **The list has pagination, filter, search and sort.** Pagination is required, because otherwise the eleventh resource is invisible. The status filter, name search and sort cost little because the API supports them. All four live in the URL.
 - **Values equal to the saved ones are not counted as changes.**
 - **Deleting a resource also discards its unsaved changes.** The confirmation says so.
+- **Form input that was not applied or saved is discarded when you leave the form.** "Cancel", "Back to overview" and the other links leave without keeping it. Only "Apply changes" or "Save" keeps it.
+- **The repository is public.** The email does not say otherwise. If it should be private, tell me whom to invite.
 
 ## Edge cases handled
 
 - **Bad addresses.** Invalid ids (`/resources/abc`), missing resources (`/resources/999999`) and unknown paths get a clear message instead of a blank screen.
 - **Network errors.** They show a message with a "Retry" button.
-- **Two tabs.** "Complete resource" in a stale tab explains that the resource is already completed, and the page reloads its current state. A draft form saved after another tab completed the resource shows the server's message, and the page switches to editing with pending changes.
+- **Failed page downloads.** If a page's code cannot be downloaded (offline, or after a new deployment), an error page with "Reload page" appears instead of an empty screen.
+- **Two tabs.** "Complete resource" in a stale tab explains that the resource is already completed, and the page reloads its current state. A draft form saved after another tab completed the resource explains this in plain words. It keeps the input and switches to applying changes.
 - **Double clicks.** A fast double click on any submit button sends one request.
-- **Pagination.** Deleting the only item on the last page moves the list to the new last page.
+- **Pagination.** Deleting the only item on the last page moves the list to the new last page, without flashing stale rows.
 - **Search.** A term with characters that names cannot contain is answered locally, because of the backend `$regex` issue below.
+- **Text with emoji.** Length limits count characters the way the backend does (UTF-16 units), so an over-long text with emoji gets an error at the field.
 - **Slow saves.** A user who leaves a page while its save is running is not pulled back when it finishes. Edits applied while "Save changes" is running are kept as pending.
-- **Resources deleted elsewhere.** Their pending changes are dropped once the app learns about it.
+- **Resources deleted elsewhere.** When the app gets a 404 for a resource's address, it drops any pending changes kept for that resource.
 
 ## Backend observations
 
@@ -92,10 +94,11 @@ I found these while building against the API. The backend was not changed. The f
 
 ## Design system notes
 
-The design system was not modified either:
+The UI uses only the provided design-system components and theme, through styled-components, with no other UI library. The design system was not modified. It needed these workarounds:
 
 - **Web fonts did not load at first.** `GlobalStyles` loads them with an `@import`, which browsers ignore unless it is the first CSS rule, and styled-components orders rules by definition. `main.tsx` therefore imports `GlobalStyles` before the app.
-- **`Drawer` neither traps nor restores focus.** The list page makes the content behind an open drawer `inert` and moves focus back to the button that opened it.
+- **`Drawer` neither traps nor restores focus.** Drawers render outside the app root, which becomes `inert` while one is open, so Tab and screen readers stay inside the drawer. Focus returns to the button that opened it.
+- **The checkbox square is not clickable.** `Checkbox` paints its square over the invisible native input, so only the text toggled it. The form lays the input exactly over the square, which keeps the look and makes the square clickable.
 - **A locked `Input` is disabled.** It cannot act as a form field, so the resource name is shown outside the form, and the request body takes the name from the loaded resource.
 - **`CheckboxGroup` takes no `ref`.** React Hook Form gets the first checkbox instead, so focus still moves to the field when it is invalid.
 - **There is no link styled as a button.** Actions that open another page use `Button` with `navigate()`; plain navigation uses links.
@@ -128,4 +131,4 @@ The task limits changes to `src` and dependencies, but the bonus needs files at 
 - Unit tests for `domain/rules.ts` and the zod schemas (Vitest is already installed), and component tests for both form modes.
 - Detection of edit conflicts between tabs: compare `updatedAt` before the PUT and offer to reload instead of overwriting.
 - Focus management after route changes and async actions, such as moving focus to the page heading.
-- Focus handling inside the design-system `Drawer`, so every drawer gets it without page-level code.
+- Fix the focus handling of `Drawer` and the clickable area of `Checkbox` in the design system itself, instead of the workarounds in the app.
