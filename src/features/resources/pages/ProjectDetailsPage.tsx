@@ -1,7 +1,5 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../design-system'
-import { getErrorMessage } from '../../../shared/api/client'
-import { withFlash } from '../../../shared/hooks/useFlashMessage'
 import { StatePanel } from '../../../shared/ui/StatePanel'
 import { ModuleFormCard } from '../components/ModuleFormCard'
 import { ProjectDetailsForm } from '../components/ProjectDetailsForm'
@@ -9,7 +7,8 @@ import { getProjectDetailsDefaults, isProjectDetailsLocked } from '../domain/rul
 import type { ProjectDetailsValues } from '../domain/types'
 import { useResourceChanges } from '../pending/useResourceChanges'
 import { useUpdateProjectDetails } from '../queries/mutations'
-import { modulePath, resourcePath } from '../routes'
+import { modulePath } from '../routes'
+import { useModuleSubmit } from './useModuleSubmit'
 import { useResourceContext } from './useResourceContext'
 
 export function ProjectDetailsPage() {
@@ -17,8 +16,14 @@ export function ProjectDetailsPage() {
   const navigate = useNavigate()
   const updateProjectDetails = useUpdateProjectDetails(resource.resourceId)
   const { changes, applyProjectDetails } = useResourceChanges(resource)
-  const isCompleted = resource.status === 'completed'
-  const overviewPath = resourcePath(resource.resourceId)
+  const form = useModuleSubmit(resource, {
+    apply: applyProjectDetails,
+    save: (values: ProjectDetailsValues, onSaved) =>
+      updateProjectDetails.mutateAsync(values, { onSuccess: onSaved }),
+    saveError: updateProjectDetails.error,
+    saveLabel: 'Save Project Details',
+    savedMessage: 'Project Details saved.',
+  })
 
   // Also guards direct visits by URL: the backend rejects Project Details before Basic Info.
   if (isProjectDetailsLocked(resource)) {
@@ -33,7 +38,7 @@ export function ProjectDetailsPage() {
             >
               Go to Basic Info
             </Button>
-            <Button variant="secondary" onClick={() => navigate(overviewPath)}>
+            <Button variant="secondary" onClick={form.cancel}>
               Back to overview
             </Button>
           </>
@@ -42,42 +47,21 @@ export function ProjectDetailsPage() {
     )
   }
 
-  const submit = async (values: ProjectDetailsValues) => {
-    // Completed resource: keep the edit in memory; it is saved later with a single PUT.
-    if (isCompleted) {
-      applyProjectDetails(values)
-      navigate(overviewPath)
-      return
-    }
-    try {
-      await updateProjectDetails.mutateAsync(values, {
-        // Skipped once the page unmounts, so a user who has already left is not pulled back.
-        onSuccess: () => navigate(overviewPath, withFlash('Project Details saved.')),
-      })
-    } catch {
-      // The form shows the error from the mutation state.
-    }
-  }
-
   return (
     <ModuleFormCard
       title="Project Details"
-      backTo={overviewPath}
-      isCompleted={isCompleted}
+      backTo={form.overviewPath}
+      isCompleted={form.isCompleted}
     >
       <ProjectDetailsForm
         defaultValues={getProjectDetailsDefaults(
           changes.projectDetails ?? resource.projectDetails,
         )}
-        submitLabel={isCompleted ? 'Apply changes' : 'Save Project Details'}
-        submittingLabel={isCompleted ? 'Applying…' : 'Saving…'}
-        serverError={
-          updateProjectDetails.isError
-            ? getErrorMessage(updateProjectDetails.error)
-            : undefined
-        }
-        onSubmit={submit}
-        onCancel={() => navigate(overviewPath)}
+        submitLabel={form.submitLabel}
+        submittingLabel={form.submittingLabel}
+        serverError={form.serverError}
+        onSubmit={form.submit}
+        onCancel={form.cancel}
       />
     </ModuleFormCard>
   )

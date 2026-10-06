@@ -13,11 +13,7 @@ import { usePendingChanges } from './usePendingChanges'
  */
 export function useResourceChanges(resource: Resource) {
   const { pendingByResource, apply, revert, prune, discard } = usePendingChanges()
-  const mongoId = resource._id
-  const changes = getUnsavedChanges(
-    resource,
-    resource.status === 'completed' ? pendingByResource[mongoId] : undefined,
-  )
+  const changes = getUnsavedChanges(resource, pendingByResource[resource._id])
   const changedModules = getChangedModules(changes)
 
   return {
@@ -27,13 +23,13 @@ export function useResourceChanges(resource: Resource) {
     // Applying values equal to the saved ones reverts the module instead of keeping a no-op.
     applyBasicInfo: (values: BasicInfoValues) =>
       isSameBasicInfo(values, resource.basicInfo)
-        ? revert(mongoId, 'basicInfo')
-        : apply(mongoId, { basicInfo: values }),
+        ? revert(resource, 'basicInfo')
+        : apply(resource, { basicInfo: values }),
     applyProjectDetails: (values: ProjectDetailsValues) =>
       isSameProjectDetails(values, resource.projectDetails)
-        ? revert(mongoId, 'projectDetails')
-        : apply(mongoId, { projectDetails: values }),
-    discardChanges: () => discard(mongoId),
+        ? revert(resource, 'projectDetails')
+        : apply(resource, { projectDetails: values }),
+    discardChanges: () => discard(resource._id),
     /** Call with the server's answer to a successful PUT. */
     pruneSaved: prune,
   }

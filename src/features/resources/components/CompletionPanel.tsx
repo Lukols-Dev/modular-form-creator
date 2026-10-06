@@ -3,7 +3,11 @@ import { Button, Card } from '../../../design-system'
 import { formatList } from '../../../shared/format'
 import { MutedText, SectionHeading, SmallText, Stack } from '../../../shared/ui/layout'
 import { MODULE_LABELS, MODULES } from '../domain/constants'
-import { canProvision, getIncompleteModules } from '../domain/rules'
+import {
+  canProvision,
+  countCompletedModules,
+  getIncompleteModules,
+} from '../domain/rules'
 import type { Resource } from '../domain/types'
 import { PanelRow, ProgressFill, ProgressTrack } from './CompletionPanel.styles'
 
@@ -21,7 +25,7 @@ export function CompletionPanel({
 }: CompletionPanelProps) {
   const hintId = useId()
   const incompleteModules = getIncompleteModules(resource)
-  const completedCount = MODULES.length - incompleteModules.length
+  const completedCount = countCompletedModules(resource)
   const isReady = canProvision(resource)
 
   return (

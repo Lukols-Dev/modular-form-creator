@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Button, Card } from '../../../design-system'
 import { getErrorMessage } from '../../../shared/api/client'
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue'
-import { useReturnFocus } from '../../../shared/hooks/useReturnFocus'
+import { useDrawerFocus } from '../../../shared/hooks/useDrawerFocus'
 import { Alert } from '../../../shared/ui/Alert'
 import { Cluster, MutedText, PageHeading, Stack } from '../../../shared/ui/layout'
 import { StatePanel } from '../../../shared/ui/StatePanel'
@@ -24,8 +25,8 @@ export function ResourcesListPage() {
     useResourceListFilters()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [resourceToDelete, setResourceToDelete] = useState<Resource | null>(null)
-  const rememberCreateOpener = useReturnFocus(isCreateOpen)
-  const rememberDeleteOpener = useReturnFocus(resourceToDelete !== null)
+  const rememberCreateOpener = useDrawerFocus(isCreateOpen)
+  const rememberDeleteOpener = useDrawerFocus(resourceToDelete !== null)
 
   const search = filters.search.trim()
   const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS)
@@ -129,9 +130,7 @@ export function ResourcesListPage() {
 
   return (
     <>
-      {/* The design-system Drawer has no focus trap, so the page behind an open drawer is made
-          inert: Tab stays in the drawer and screen readers skip the covered content. */}
-      <Stack $gap="lg" inert={isCreateOpen || resourceToDelete !== null}>
+      <Stack $gap="lg">
         <title>Resources · Modular Form Creator</title>
         <Cluster $justify="space-between" $gap="md">
           <Stack $gap="xs">
@@ -162,14 +161,20 @@ export function ResourcesListPage() {
         {content}
       </Stack>
 
-      <CreateResourceDrawer
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
-      <DeleteResourceDrawer
-        resource={resourceToDelete}
-        onClose={() => setResourceToDelete(null)}
-      />
+      {/* Outside the app root, which useDrawerFocus makes inert while a drawer is open. */}
+      {createPortal(
+        <>
+          <CreateResourceDrawer
+            isOpen={isCreateOpen}
+            onClose={() => setIsCreateOpen(false)}
+          />
+          <DeleteResourceDrawer
+            resource={resourceToDelete}
+            onClose={() => setResourceToDelete(null)}
+          />
+        </>,
+        document.body,
+      )}
     </>
   )
 }

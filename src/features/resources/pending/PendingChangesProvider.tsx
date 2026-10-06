@@ -28,10 +28,11 @@ export function PendingChangesProvider({ children }: { children: ReactNode }) {
   // Stable functions, so consumers can use them in effect dependencies.
   const actions = useMemo<PendingChangesActions>(
     () => ({
-      apply: (mongoId, changes) => dispatch({ type: 'apply', mongoId, changes }),
-      revert: (mongoId, module) => dispatch({ type: 'revert', mongoId, module }),
+      apply: (resource, changes) => dispatch({ type: 'apply', resource, changes }),
+      revert: (resource, module) => dispatch({ type: 'revert', resource, module }),
       prune: (saved) => dispatch({ type: 'prune', saved }),
       discard: (mongoId) => dispatch({ type: 'discard', mongoId }),
+      discardMissing: (resourceId) => dispatch({ type: 'discardMissing', resourceId }),
     }),
     [],
   )

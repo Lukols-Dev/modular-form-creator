@@ -138,12 +138,18 @@ export function isSameProjectDetails(
   )
 }
 
-/** Pending modules that still differ from the saved resource. */
+/**
+ * Pending modules that still differ from the saved resource. Only a completed resource keeps
+ * pending changes: a draft saves every module right away.
+ */
 export function getUnsavedChanges(
   resource: Resource,
   pending: PendingChanges | undefined,
 ): PendingChanges {
   const changes: PendingChanges = {}
+  if (resource.status !== 'completed') {
+    return changes
+  }
   if (pending?.basicInfo && !isSameBasicInfo(pending.basicInfo, resource.basicInfo)) {
     changes.basicInfo = pending.basicInfo
   }
@@ -158,6 +164,13 @@ export function getUnsavedChanges(
 
 export function getChangedModules(changes: PendingChanges): ModuleKey[] {
   return MODULES.filter((module) => changes[module] !== undefined)
+}
+
+export function hasUnsavedChanges(
+  resource: Resource,
+  pending: PendingChanges | undefined,
+): boolean {
+  return getChangedModules(getUnsavedChanges(resource, pending)).length > 0
 }
 
 function pickBasicInfoValues(basicInfo: BasicInfo): BasicInfoValues | null {

@@ -114,7 +114,12 @@ export function useDeleteResource() {
         forget(resource)
       }
     },
-    // Wait for the refreshed list, so the deleted row never flashes back.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: resourceKeys.lists() }),
+    onSettled: () => {
+      // Other cached pages may still contain the deleted row, and the list jumps to one of them
+      // when the backend clamps the page, so drop them rather than show them stale.
+      queryClient.removeQueries({ queryKey: resourceKeys.lists(), type: 'inactive' })
+      // Wait for the refreshed list, so the deleted row never flashes back.
+      return queryClient.invalidateQueries({ queryKey: resourceKeys.lists() })
+    },
   })
 }

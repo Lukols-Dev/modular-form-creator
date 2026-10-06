@@ -29,17 +29,16 @@ export function ResourceLayout() {
 
 function ResourceScreen({ resourceId }: { resourceId: number }) {
   const { data: resource, error, isFetching, refetch } = useResourceQuery(resourceId)
-  const { discard } = usePendingChanges()
+  const { discardMissing } = usePendingChanges()
   const isMissing = isApiError(error, 404) || isApiError(error, 400)
-  const missingMongoId = isMissing ? resource?._id : undefined
 
   // Pending edits of a resource that no longer exists can never be saved. Dropping them also
   // stops the browser from warning about changes the user cannot see any more.
   useEffect(() => {
-    if (missingMongoId) {
-      discard(missingMongoId)
+    if (isMissing) {
+      discardMissing(resourceId)
     }
-  }, [missingMongoId, discard])
+  }, [isMissing, resourceId, discardMissing])
 
   if (isMissing) {
     return (

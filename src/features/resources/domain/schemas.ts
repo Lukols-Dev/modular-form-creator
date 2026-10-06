@@ -17,10 +17,19 @@ import type { BasicInfoValues, ProjectDetailsValues } from './types'
 
 const requiredText = (label: string) => z.string().trim().min(1, `${label} is required`)
 
+// The backend checks String.length, which counts UTF-16 units, while zod's max() counts code
+// points. Text with emoji could then pass here and fail there, so lengths are checked the same way.
+const limitedText = (label: string, max: number) =>
+  requiredText(label).refine(
+    (value) => value.length <= max,
+    `${label} must be at most ${max} characters`,
+  )
+
 const nameText = (label: string) =>
-  requiredText(label)
-    .max(MAX_NAME_LENGTH, `${label} must be at most ${MAX_NAME_LENGTH} characters`)
-    .regex(NAME_PATTERN, `${label} can contain only letters, numbers, spaces and hyphens`)
+  limitedText(label, MAX_NAME_LENGTH).regex(
+    NAME_PATTERN,
+    `${label} can contain only letters, numbers, spaces and hyphens`,
+  )
 
 export const createResourceSchema = z.object({
   resourceName: nameText('Resource name'),
@@ -29,20 +38,15 @@ export const createResourceSchema = z.object({
 export type CreateResourceValues = z.infer<typeof createResourceSchema>
 
 export const basicInfoSchema = z.object({
-  owner: requiredText('Owner')
-    .max(MAX_NAME_LENGTH, `Owner must be at most ${MAX_NAME_LENGTH} characters`)
-    .regex(
-      OWNER_PATTERN,
-      'Owner can contain only letters A–Z and spaces (no accents, digits or hyphens)',
-    ),
+  owner: limitedText('Owner', MAX_NAME_LENGTH).regex(
+    OWNER_PATTERN,
+    'Owner can contain only letters A–Z and spaces (no accents, digits or hyphens)',
+  ),
   email: requiredText('Email').regex(
     EMAIL_PATTERN,
     'Enter a valid email address, e.g. name@example.com',
   ),
-  description: requiredText('Description').max(
-    MAX_DESCRIPTION_LENGTH,
-    `Description must be at most ${MAX_DESCRIPTION_LENGTH} characters`,
-  ),
+  description: limitedText('Description', MAX_DESCRIPTION_LENGTH),
   priority: z.enum(PRIORITIES, { error: 'Select a priority' }),
 }) satisfies z.ZodType<BasicInfoValues>
 

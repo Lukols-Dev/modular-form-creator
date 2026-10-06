@@ -13,6 +13,7 @@ import { CATEGORIES, CATEGORY_LABELS, TEAM_MEMBER_OPTIONS } from '../domain/cons
 import { sortTeamMembers } from '../domain/rules'
 import { projectDetailsSchema } from '../domain/schemas'
 import type { ProjectDetailsValues } from '../domain/types'
+import { TeamMembersField } from './ProjectDetailsForm.styles'
 
 const CATEGORY_OPTIONS: SelectOption[] = [
   { value: '', label: 'Select a category' },
@@ -83,7 +84,7 @@ export function ProjectDetailsForm({
         render={({ field, fieldState }) => (
           // The design-system CheckboxGroup takes no ref, so React Hook Form gets the first
           // checkbox and can move focus there when the field is invalid.
-          <div ref={(element) => field.ref(element?.querySelector('input'))}>
+          <TeamMembersField ref={(element) => field.ref(element?.querySelector('input'))}>
             <CheckboxGroup
               label="Team members needed"
               tooltip="Select all roles required for this project."
@@ -93,7 +94,7 @@ export function ProjectDetailsForm({
               error={fieldState.error?.message}
               onChange={(selected) => field.onChange(sortTeamMembers(selected))}
             />
-          </div>
+          </TeamMembersField>
         )}
       />
       {serverError ? (
