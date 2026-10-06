@@ -4,13 +4,11 @@ import type { PendingChanges, Resource } from '../domain/types'
 import type { PendingChangesState } from './pendingChangesReducer'
 
 export interface PendingChangesActions {
-  apply: (resource: Resource, changes: PendingChanges) => void
-  revert: (resource: Resource, module: ModuleKey) => void
+  apply: (mongoId: string, changes: PendingChanges) => void
+  revert: (mongoId: string, module: ModuleKey) => void
   /** Drops the pending modules that the saved resource now contains. */
   prune: (saved: Resource) => void
   discard: (mongoId: string) => void
-  /** Drops pending edits of the resource at this address after the backend answers 404. */
-  discardMissing: (resourceId: number) => void
 }
 
 export interface PendingChangesContextValue extends PendingChangesActions {

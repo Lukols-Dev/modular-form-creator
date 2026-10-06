@@ -23,12 +23,12 @@ export function useResourceChanges(resource: Resource) {
     // Applying values equal to the saved ones reverts the module instead of keeping a no-op.
     applyBasicInfo: (values: BasicInfoValues) =>
       isSameBasicInfo(values, resource.basicInfo)
-        ? revert(resource, 'basicInfo')
-        : apply(resource, { basicInfo: values }),
+        ? revert(resource._id, 'basicInfo')
+        : apply(resource._id, { basicInfo: values }),
     applyProjectDetails: (values: ProjectDetailsValues) =>
       isSameProjectDetails(values, resource.projectDetails)
-        ? revert(resource, 'projectDetails')
-        : apply(resource, { projectDetails: values }),
+        ? revert(resource._id, 'projectDetails')
+        : apply(resource._id, { projectDetails: values }),
     discardChanges: () => discard(resource._id),
     /** Call with the server's answer to a successful PUT. */
     pruneSaved: prune,

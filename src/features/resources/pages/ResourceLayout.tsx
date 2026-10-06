@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Outlet, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../../design-system'
 import { getErrorMessage, isApiError } from '../../../shared/api/client'
@@ -6,7 +5,6 @@ import { Alert } from '../../../shared/ui/Alert'
 import { Stack } from '../../../shared/ui/layout'
 import { StatePanel } from '../../../shared/ui/StatePanel'
 import { ResourceHeader } from '../components/ResourceHeader'
-import { usePendingChanges } from '../pending/usePendingChanges'
 import { useResourceQuery } from '../queries/useResourceQuery'
 import { parseResourceId, RESOURCES_PATH } from '../routes'
 import type { ResourceOutletContext } from './useResourceContext'
@@ -29,18 +27,8 @@ export function ResourceLayout() {
 
 function ResourceScreen({ resourceId }: { resourceId: number }) {
   const { data: resource, error, isFetching, refetch } = useResourceQuery(resourceId)
-  const { discardMissing } = usePendingChanges()
-  const isMissing = isApiError(error, 404) || isApiError(error, 400)
 
-  // Pending edits of a resource that no longer exists can never be saved. Dropping them also
-  // stops the browser from warning about changes the user cannot see any more.
-  useEffect(() => {
-    if (isMissing) {
-      discardMissing(resourceId)
-    }
-  }, [isMissing, resourceId, discardMissing])
-
-  if (isMissing) {
+  if (isApiError(error, 404) || isApiError(error, 400)) {
     return (
       <MissingResource
         title="Resource not found"
